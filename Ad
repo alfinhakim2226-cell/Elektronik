@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroHub - Toko Elektronik Promo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Hide elements by default */
+        .hidden { display: none !important; }
+
+        /* Notification Toast */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 50;
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+            transition: visibility 0.5s, bottom 0.5s, opacity 0.5s;
+            opacity: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+        #toast.success { background-color: #10B981; } /* Emerald 500 */
+        #toast.error { background-color: #EF4444; } /* Red 500 */
+
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center cursor-pointer" onclick="switchView('storefront')">
+                    <i class="fas fa-bolt text-yellow-300 text-2xl mr-2"></i>
+                    <span class="font-bold text-xl tracking-wide">ElectroHub</span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <button onclick="switchView('storefront')" class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium transition">Beranda</button>
+                        <button onclick="switchView('promo')" class="hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium transition text-yellow-300"><i class="fas fa-tags mr-1"></i> Promo Terkini</button>
+                        <button id="nav-admin-login" onclick="switchView('admin-login')" class="bg-blue-800 hover:bg-blue-900 px-3 py-2 rounded-md text-sm font-medium transition border border-blue-500"><i class="fas fa-user-lock mr-1"></i> Admin Login</button>
+                        <button id="nav-admin-dashboard" onclick="switchView('admin-dashboard')" class="hidden bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded-md text-sm font-medium transition border border-indigo-500"><i class="fas fa-chart-line mr-1"></i> Dashboard Admin</button>
+                        <button id="nav-admin-logout" onclick="logout()" class="hidden bg-red-600 hover:bg-red-700 px-3 py-2 rounded-md text-sm font-medium transition border border-red-500"><i class="fas fa-sign-out-alt mr-1"></i> Keluar</button>
+                    </div>
+                </div>
+
+                <!-- Mobile menu button -->
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-blue-700">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <button onclick="switchView('storefront'); toggleMobileMenu()" class="block w-full text-left hover:bg-blue-600 px-3 py-2 rounded-md text-base font-medium">Beranda</button>
+                <button onclick="switchView('promo'); toggleMobileMenu()" class="block w-full text-left hover:bg-blue-600 px-3 py-2 rounded-md text-base font-medium text-yellow-300"><i class="fas fa-tags mr-1"></i> Promo Terkini</button>
+                <button id="mobile-nav-admin-login" onclick="switchView('admin-login'); toggleMobileMenu()" class="block w-full text-left bg-blue-800 hover:bg-blue-900 px-3 py-2 rounded-md text-base font-medium mt-2"><i class="fas fa-user-lock mr-1"></i> Admin Login</button>
+                <button id="mobile-nav-admin-dashboard" onclick="switchView('admin-dashboard'); toggleMobileMenu()" class="hidden block w-full text-left bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded-md text-base font-medium mt-2"><i class="fas fa-chart-line mr-1"></i> Dashboard Admin</button>
+                <button id="mobile-nav-admin-logout" onclick="logout(); toggleMobileMenu()" class="hidden block w-full text-left bg-red-600 hover:bg-red-700 px-3 py-2 rounded-md text-base font-medium mt-2"><i class="fas fa-sign-out-alt mr-1"></i> Keluar</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-grow">
+        
+        <!-- ================= STOREFRONT VIEW ================= -->
+        <div id="view-storefront" class="view-section">
+            <!-- Hero Section -->
+            <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 text-center">
+                    <h1 class="text-4xl tracking-tight font-extrabold sm:text-5xl md:text-6xl mb-4">
+                        <span class="block">Teknologi Terbaru 2026,</span>
+                        <span class="block text-yellow-300">Harga Terbaik.</span>
+                    </h1>
+                    <p class="mt-3 max-w-md mx-auto text-base text-blue-200 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                        Temukan gadget dan perangkat elektronik pintar terkini. Nikmati promo menarik untuk memajukan gaya hidup digital Anda.
+                    </p>
+                    <div class="mt-8 flex justify-center space-x-4">
+                        <div class="rounded-md shadow">
+                            <a href="#product-grid" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg transition">
+                                Belanja Sekarang
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="flex overflow-x-auto space-x-4 pb-4 no-scrollbar items-center justify-center">
+                    <button class="bg-blue-600 px-6 py-2 rounded-full shadow-sm border font-medium whitespace-nowrap text-white">Semua Kategori</button>
+                    <button class="bg-white px-6 py-2 rounded-full shadow-sm border hover:border-blue-500 text-gray-600 font-medium whitespace-nowrap">Smartphone</button>
+                    <button class="bg-white px-6 py-2 rounded-full shadow-sm border hover:border-blue-500 text-gray-600 font-medium whitespace-nowrap">Tablet</button>
+                    <button class="bg-white px-6 py-2 rounded-full shadow-sm border hover:border-blue-500 text-gray-600 font-medium whitespace-nowrap">Smart Home</button>
+                    <button class="bg-white px-6 py-2 rounded-full shadow-sm border hover:border-blue-500 text-gray-600 font-medium whitespace-nowrap">TV & Audio</button>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-12">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900" id="product-grid">Katalog Produk Elektronik</h2>
+                </div>
+                
+                <!-- Dynamic Product Container -->
+                <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <!-- Products will be injected here via JS -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden text-center py-20">
+                    <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-600">Belum ada produk.</h3>
+                    <p class="text-gray-500">Admin belum mempublikasikan produk apa pun.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= PROMO VIEW ================= -->
+        <div id="view-promo" class="view-section hidden">
+            <div class="bg-yellow-50 py-12 border-b border-yellow-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <i class="fas fa-gift text-6xl text-yellow-500 mb-6 animate-bounce"></i>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">Festival Diskon Elektronik</h2>
+                    <p class="text-gray-600 mb-8 max-w-2xl mx-auto text-lg">Dapatkan potongan harga spesial untuk gadget impian Anda. Gunakan kode voucher <span class="font-bold bg-yellow-200 px-3 py-1 rounded text-yellow-800 border border-yellow-400">PROMO2026</span> saat checkout!</p>
+                </div>
+            </div>
+            
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <!-- Reuse product grid for promo -->
+                <div id="promo-products-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-left">
+                    <!-- Filtered promo products will go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN LOGIN VIEW ================= -->
+        <div id="view-admin-login" class="view-section hidden flex items-center justify-center py-20 px-4 min-h-[70vh]">
+            <div class="max-w-md w-full glass-panel rounded-2xl shadow-xl p-8 border border-gray-200">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                        <i class="fas fa-shield-alt text-3xl text-blue-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">Login Administrator</h2>
+                    <p class="text-sm text-gray-500 mt-2">Akses khusus untuk mengelola inventaris toko.</p>
+                </div>
+                
+                <form id="login-form" onsubmit="handleLogin(event)">
+                    <div class="mb-4">
+                        <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="username" class="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Username Anda" required>
+                        </div>
+                        <p class="text-xs text-blue-600 font-medium mt-1">Hint: admin</p>
+                    </div>
+                    <div class="mb-6">
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="password" class="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="••••••••" required>
+                        </div>
+                        <p class="text-xs text-blue-600 font-medium mt-1">Hint: password</p>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-md flex justify-center items-center">
+                        Masuk Sistem <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN DASHBOARD VIEW ================= -->
+        <div id="view-admin-dashboard" class="view-section hidden">
+            <div class="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
+                
+                <!-- Admin Sidebar -->
+                <div class="w-full md:w-64 bg-gray-900 text-white shadow-xl flex-shrink-0">
+                    <div class="p-6 border-b border-gray-800">
+                        <h2 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-cogs mr-3 text-blue-400"></i> Admin Panel
+                        </h2>
+                    </div>
+                    <nav class="mt-4 space-y-1">
+                        <a href="#" class="bg-gray-800 text-white group flex items-center px-6 py-3 text-sm font-medium border-l-4 border-blue-500">
+                            <i class="fas fa-box-open w-6 text-center mr-2 text-blue-400"></i> Kelola Produk
+                        </a>
+                        <a href="#" onclick="logout()" class="text-gray-400 hover:bg-gray-800 hover:text-white group flex items-center px-6 py-3 text-sm font-medium border-l-4 border-transparent transition">
+                            <i class="fas fa-sign-out-alt w-6 text-center mr-2 group-hover:text-gray-300"></i> Keluar Sistem
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Admin Main Content -->
+                <div class="flex-1 bg-gray-50 p-4 md:p-8 overflow-y-auto">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Dashboard Manajemen Produk</h1>
+                            <p class="text-gray-500 text-sm mt-1">Publikasikan barang elektronik dan promo terbaru ke halaman utama.</p>
+                        </div>
+                        <div>
+                            <button onclick="syncToCloud()" id="btn-cloud-sync" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-sm font-medium transition flex items-center">
+                                <i class="fas fa-cloud-upload-alt mr-2"></i> Sinkronisasi Cloud
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        
+                        <!-- Add Product Form -->
+                        <div class="xl:col-span-1">
+                            <div class="bg-white rounded-xl shadow-md border border-gray-200 p-6 sticky top-8">
+                                <h3 class="text-lg font-semibold mb-4 border-b border-gray-100 pb-3 flex items-center">
+                                    <i class="fas fa-plus-circle text-green-500 mr-2"></i> Tambah Produk Baru
+                                </h3>
+                                <form id="add-product-form" onsubmit="handleAddProduct(event)">
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama / Model Produk *</label>
+                                        <input type="text" id="p-name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition" placeholder="Cth: Samsung Galaxy Z TriFold">
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
+                                        <select id="p-category" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white transition">
+                                            <option value="Smartphone">Smartphone</option>
+                                            <option value="Tablet">Tablet</option>
+                                            <option value="Laptop">Laptop</option>
+                                            <option value="Smart Home">Smart Home</option>
+                                            <option value="TV & Audio">TV & Audio</option>
+                                            <option value="Aksesoris">Aksesoris Lainnya</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Harga Asli (Rp) *</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 sm:text-sm font-medium">Rp</span>
+                                            </div>
+                                            <input type="number" id="p-price" required min="0" class="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition" placeholder="Misal: 15000000">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" id="p-promo" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
+                                            <label for="p-promo" class="ml-2 block text-sm font-medium text-blue-900 cursor-pointer">
+                                                Aktifkan Status Promo / Diskon
+                                            </label>
+                                        </div>
+                                        <p class="text-xs text-blue-600 mt-1 ml-6">Barang akan muncul di halaman "Promo Terkini".</p>
+                                    </div>
+                                    
+                                    <div class="mb-4 hidden" id="promo-price-container">
+                                        <label class="block text-sm font-medium text-red-600 mb-1">Harga Setelah Diskon (Rp)</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-red-500 sm:text-sm font-bold">Rp</span>
+                                            </div>
+                                            <input type="number" id="p-promo-price" min="0" class="w-full pl-10 px-3 py-2 border border-red-300 rounded-md focus:ring-red-500 focus:border-red-500 outline-none text-sm bg-red-50 transition" placeholder="Misal: 12000000">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Tautan Foto Produk (URL) *</label>
+                                        <div class="flex rounded-md shadow-sm">
+                                            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                                <i class="fas fa-link"></i>
+                                            </span>
+                                            <input type="url" id="p-image" required class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition" placeholder="https://contoh.com/gambar.jpg">
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">Gunakan URL foto publik untuk menampilkan gambar.</p>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi & Keunggulan</label>
+                                        <textarea id="p-desc" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition" placeholder="Jelaskan spesifikasi dan keunggulan teknologi terbarunya..."></textarea>
+                                    </div>
+
+                                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md shadow-md transition flex items-center justify-center">
+                                        <i class="fas fa-paper-plane mr-2"></i> Publikasikan Sekarang
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Product Management List -->
+                        <div class="xl:col-span-2">
+                            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                                <div class="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center">
+                                    <h3 class="text-lg font-semibold text-gray-800">Daftar Inventaris Terpublikasi</h3>
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold" id="product-count-badge">0 item</span>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Info Produk</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Harga & Status</th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Tindakan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-product-list" class="bg-white divide-y divide-gray-100">
+                                            <!-- List populated by JS -->
+                                        </tbody>
+                                    </table>
+                                    
+                                    <!-- Empty state for table -->
+                                    <div id="admin-empty-state" class="hidden text-center py-16 bg-gray-50">
+                                        <i class="fas fa-folder-open text-4xl text-gray-300 mb-3"></i>
+                                        <p class="text-gray-500 font-medium">Belum ada barang di inventaris.</p>
+                                        <p class="text-gray-400 text-sm mt-1">Gunakan formulir untuk mempublikasikan barang elektronik baru. Gunakan Sinkronisasi Cloud untuk penyimpanan awan.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white pt-12 pb-8 mt-auto border-t-4 border-blue-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-bolt text-yellow-300 text-2xl mr-2"></i>
+                        <span class="font-bold text-xl tracking-wide">ElectroHub</span>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed">Pusat teknologi terdepan. Kami menghadirkan inovasi gadget terbaru 2026 langsung ke genggaman Anda dengan jaminan garansi resmi.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-100">Layanan Pelanggan</h3>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-blue-400 transition"><i class="fas fa-chevron-right text-xs mr-2 text-blue-500"></i>Panduan Belanja</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition"><i class="fas fa-chevron-right text-xs mr-2 text-blue-500"></i>Status Pengiriman</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition"><i class="fas fa-chevron-right text-xs mr-2 text-blue-500"></i>Klaim Garansi</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-100">Hubungi Kami</h3>
+                    <ul class="space-y-3 text-sm text-gray-400">
+                        <li class="flex items-center"><i class="fas fa-envelope w-6 text-blue-500"></i> hello@electrohub.id</li>
+                        <li class="flex items-center"><i class="fas fa-headset w-6 text-blue-500"></i> 1500-TECH (8324)</li>
+                        <li class="flex space-x-4 mt-5">
+                            <a href="#" class="bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white hover:bg-blue-600 transition w-10 h-10 flex items-center justify-center"><i class="fab fa-instagram text-lg"></i></a>
+                            <a href="#" class="bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white hover:bg-blue-600 transition w-10 h-10 flex items-center justify-center"><i class="fab fa-facebook-f text-lg"></i></a>
+                            <a href="#" class="bg-gray-800 p-2 rounded-full text-gray-400 hover:text-white hover:bg-blue-600 transition w-10 h-10 flex items-center justify-center"><i class="fab fa-tiktok text-lg"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-6 text-center text-sm text-gray-500 flex flex-col md:flex-row justify-between items-center">
+                <p>&copy; 2026 ElectroHub Indonesia. Hak Cipta Dilindungi.</p>
+                <div class="mt-4 md:mt-0 flex space-x-4">
+                    <i class="fab fa-cc-visa text-2xl opacity-50 hover:opacity-100 transition cursor-pointer"></i>
+                    <i class="fab fa-cc-mastercard text-2xl opacity-50 hover:opacity-100 transition cursor-pointer"></i>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Notification Toast -->
+    <div id="toast">Notifikasi</div>
+
+    <!-- Scripts -->
+    <script>
+        // --- State Management ---
+        let currentView = 'storefront';
+        let isLoggedIn = false;
+        
+        // Data Produk Inovasi Terbaru (Berdasarkan Tren 2026)
+        const initialProducts = [
+            {
+                id: 1,
+                name: "Samsung Galaxy Z TriFold",
+                category: "Smartphone",
+                price: 36000000,
+                isPromo: true,
+                promoPrice: 33500000,
+                image: "https://placehold.co/600x400/1e3a8a/ffffff?text=Galaxy+Z+TriFold+2026",
+                desc: "Inovasi revolusioner ponsel dengan dua engsel layar lipat tanpa crease (garis lipatan). Bisa bertransformasi dari ponsel tebal menjadi tablet raksasa."
+            },
+            {
+                id: 2,
+                name: "HUAWEI MatePad Air (2026)",
+                category: "Tablet",
+                price: 11500000,
+                isPromo: false,
+                promoPrice: 0,
+                image: "https://placehold.co/600x400/0f172a/ffffff?text=MatePad+Air+2026",
+                desc: "Tablet ultra-tipis (5,3mm) dan super ringan (509g). Ditenagai kemampuan AI setingkat PC untuk produktivitas maksimal di mana saja."
+            },
+            {
+                id: 3,
+                name: "Kulkas Pintar AI 4 Pintu",
+                category: "Smart Home",
+                price: 24500000,
+                isPromo: true,
+                promoPrice: 21900000,
+                image: "https://placehold.co/600x400/111827/ffffff?text=Smart+Kulkas+AI",
+                desc: "Kulkas cerdas dengan AI Vision dan layar tablet. Mampu mengenali bahan makanan, merekomendasikan resep, dan mendeteksi stok yang menipis secara otomatis."
+            },
+            {
+                id: 4,
+                name: "TCL 65\" Mini LED Google TV",
+                category: "TV & Audio",
+                price: 16000000,
+                isPromo: true,
+                promoPrice: 9900000,
+                image: "https://placehold.co/600x400/831843/ffffff?text=TCL+Mini+LED+TV",
+                desc: "Smart TV dengan teknologi QLED dan Mini LED. Memberikan warna tajam dan kontras sempurna. (Promo Spesial Diskon Heboh!)"
+            },
+            {
+                id: 5,
+                name: "Laptop AI Core Ultra Series 3",
+                category: "Laptop",
+                price: 28000000,
+                isPromo: false,
+                promoPrice: 0,
+                image: "https://placehold.co/600x400/1e40af/ffffff?text=AI+Core+Ultra+Laptop",
+                desc: "Ditenagai prosesor Intel terbaru dengan arsitektur NPU yang didedikasikan penuh untuk memproses kecerdasan buatan dengan kecepatan kilat."
+            }
+        ];
+
+        // Load products from localStorage or use initial data
+        let products = JSON.parse(localStorage.getItem('electrohub_products_2026')) || initialProducts;
+
+        // --- Utility Functions ---
+
+        // Format currency (Rupiah)
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(number);
+        };
+
+        // Show toast notification
+        const showToast = (message, type = 'success') => {
+            const toast = document.getElementById("toast");
+            toast.textContent = message;
+            toast.className = `show ${type}`;
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        };
+
+        // --- UI Navigation ---
+        
+        function updateAuthUI() {
+            const elementsToHideWhenLoggedOut = [
+                'nav-admin-dashboard', 'nav-admin-logout',
+                'mobile-nav-admin-dashboard', 'mobile-nav-admin-logout'
+            ];
+            const elementsToHideWhenLoggedIn = [
+                'nav-admin-login', 'mobile-nav-admin-login'
+            ];
+
+            if (isLoggedIn) {
+                elementsToHideWhenLoggedOut.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+                elementsToHideWhenLoggedIn.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+            } else {
+                elementsToHideWhenLoggedOut.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+                elementsToHideWhenLoggedIn.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function switchView(viewName) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            
+            // Check auth for dashboard
+            if (viewName === 'admin-dashboard' && !isLoggedIn) {
+                viewName = 'admin-login';
+            }
+            if (viewName === 'admin-login' && isLoggedIn) {
+                viewName = 'admin-dashboard';
+            }
+
+            // Show selected view
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            currentView = viewName;
+
+            // Trigger specific view renders
+            if (viewName === 'storefront') renderStorefront();
+            if (viewName === 'promo') renderPromoView();
+            if (viewName === 'admin-dashboard') renderAdminProductList();
+            
+            // Scroll to top smooth
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Authentication ---
+        
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            // Simple hardcoded auth for demo purposes
+            if (user === 'admin' && pass === 'password') {
+                isLoggedIn = true;
+                updateAuthUI();
+                document.getElementById('login-form').reset();
+                showToast('Autentikasi berhasil. Selamat datang Admin.', 'success');
+                switchView('admin-dashboard');
+            } else {
+                showToast('Kredensial salah! Silakan coba lagi.', 'error');
+            }
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            updateAuthUI();
+            showToast('Anda telah keluar dari sistem admin.', 'success');
+            switchView('storefront');
+        }
+
+        // --- Admin Functions ---
+
+        // Toggle promo price input visibility based on checkbox
+        document.getElementById('p-promo').addEventListener('change', function() {
+            const container = document.getElementById('promo-price-container');
+            const input = document.getElementById('p-promo-price');
+            if(this.checked) {
+                container.classList.remove('hidden');
+                input.required = true;
+                container.classList.add('animate-pulse');
+                setTimeout(() => container.classList.remove('animate-pulse'), 500);
+            } else {
+                container.classList.add('hidden');
+                input.required = false;
+                input.value = '';
+            }
+        });
+
+        function handleAddProduct(e) {
+            e.preventDefault();
+            
+            const isPromo = document.getElementById('p-promo').checked;
+            const price = parseInt(document.getElementById('p-price').value);
+            let promoPrice = 0;
+            
+            if (isPromo) {
+                promoPrice = parseInt(document.getElementById('p-promo-price').value);
+                if (promoPrice >= price) {
+                    showToast('Harga promo harus lebih murah dari harga asli!', 'error');
+                    return;
+                }
+            }
+
+            const newProduct = {
+                id: Date.now(), // Generate unique ID
+                name: document.getElementById('p-name').value,
+                category: document.getElementById('p-category').value,
+                price: price,
+                isPromo: isPromo,
+                promoPrice: promoPrice,
+                image: document.getElementById('p-image').value,
+                desc: document.getElementById('p-desc').value
+            };
+
+            // Add to array (at the top)
+            products.unshift(newProduct);
+            
+            // Save to localStorage
+            localStorage.setItem('electrohub_products_2026', JSON.stringify(products));
+            
+            // Reset form
+            document.getElementById('add-product-form').reset();
+            document.getElementById('promo-price-container').classList.add('hidden');
+            
+            // Update UI
+            renderAdminProductList();
+            showToast('Barang elektronik berhasil dipublikasikan!', 'success');
+        }
+
+        function deleteProduct(id) {
+            // Delete logic without native confirm() box for iframe safety
+            products = products.filter(p => p.id !== id);
+            localStorage.setItem('electrohub_products_2026', JSON.stringify(products));
+            renderAdminProductList();
+            showToast('Produk telah dihapus dari sistem.', 'success');
+        }
+
+        function syncToCloud() {
+            const btn = document.getElementById('btn-cloud-sync');
+            const originalText = btn.innerHTML;
+            
+            // Set Loading State
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Menyinkronkan...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            btn.disabled = true;
+
+            // Simulate network request to Cloud Storage
+            setTimeout(() => {
+                // Success State
+                btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Tersinkronisasi';
+                btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                
+                showToast('Data inventaris berhasil disinkronisasi ke Cloud Server!', 'success');
+                
+                // Revert to original state after 3 seconds
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700', 'opacity-75', 'cursor-not-allowed');
+                    btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                    btn.disabled = false;
+                }, 3000);
+            }, 1500); // 1.5 seconds loading simulation
+        }
+
+        function renderAdminProductList() {
+            const tbody = document.getElementById('admin-product-list');
+            const emptyState = document.getElementById('admin-empty-state');
+            const badge = document.getElementById('product-count-badge');
+            
+            tbody.innerHTML = '';
+            badge.textContent = `${products.length} Barang`;
+
+            if (products.length === 0) {
+                tbody.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            tbody.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            products.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition";
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-12 w-12 border border-gray-200 rounded-md overflow-hidden bg-gray-100">
+                                <img class="h-12 w-12 object-cover" src="${p.image}" alt="Foto ${p.name}" onerror="this.src='https://placehold.co/100x100?text=No+Img'">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-bold text-gray-900 line-clamp-1">${p.name}</div>
+                                <div class="text-xs text-blue-600 font-medium uppercase tracking-wider mt-1">${p.category}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        ${p.isPromo 
+                            ? `<div class="text-sm font-bold text-red-600">${formatRupiah(p.promoPrice)}</div>
+                               <div class="text-xs text-gray-400 line-through">${formatRupiah(p.price)}</div>
+                               <span class="mt-1 px-2 inline-flex text-[10px] leading-4 font-bold rounded-sm bg-red-100 text-red-800 border border-red-200">PROMO AKTIF</span>`
+                            : `<div class="text-sm font-bold text-gray-900">${formatRupiah(p.price)}</div>
+                               <span class="mt-1 px-2 inline-flex text-[10px] leading-4 font-bold rounded-sm bg-gray-100 text-gray-600 border border-gray-200">HARGA NORMAL</span>`
+                        }
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-white bg-red-50 hover:bg-red-600 border border-red-200 hover:border-red-600 px-3 py-1.5 rounded transition inline-flex items-center">
+                            <i class="fas fa-trash-alt mr-1"></i> Hapus
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Storefront Functions ---
+
+        // Generic function to generate product card HTML
+        function createProductCardHTML(p) {
+            const priceDisplay = p.isPromo 
+                ? `<div class="flex items-baseline space-x-2">
+                     <span class="text-xl font-black text-red-600">${formatRupiah(p.promoPrice)}</span>
+                     <span class="text-sm text-gray-400 line-through font-medium">${formatRupiah(p.price)}</span>
+                   </div>`
+                : `<span class="text-xl font-black text-blue-900">${formatRupiah(p.price)}</span>`;
+
+            const badge = p.isPromo 
+                ? `<div class="absolute top-3 right-3 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded shadow-lg z-10 flex items-center">
+                    <i class="fas fa-fire mr-1"></i> PROMO
+                   </div>` 
+                : '';
+
+            let discountBadge = '';
+            if(p.isPromo) {
+                const discount = Math.round(((p.price - p.promoPrice) / p.price) * 100);
+                discountBadge = `<div class="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-xs font-extrabold px-2 py-1 rounded shadow-md z-10">HEMAT ${discount}%</div>`;
+            }
+
+            return `
+                <div class="product-card bg-white rounded-2xl overflow-hidden border border-gray-200 flex flex-col h-full relative group">
+                    ${badge}
+                    ${discountBadge}
+                    <div class="relative pt-[75%] bg-gray-50 overflow-hidden border-b border-gray-100">
+                        <img src="${p.image}" alt="Foto ${p.name}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" onerror="this.src='https://placehold.co/600x400/f3f4f6/a1a1aa?text=No+Photo'">
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300"></div>
+                    </div>
+                    <div class="p-5 flex-grow flex flex-col">
+                        <div class="text-xs text-blue-600 font-bold uppercase tracking-wider mb-2 flex items-center">
+                            <i class="fas fa-tag mr-1 opacity-70"></i> ${p.category}
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">${p.name}</h3>
+                        <p class="text-sm text-gray-500 mb-5 line-clamp-3 flex-grow leading-relaxed">${p.desc}</p>
+                        <div class="mt-auto border-t border-gray-100 pt-4">
+                            <div class="mb-4">
+                                ${priceDisplay}
+                            </div>
+                            <button class="w-full bg-gray-900 hover:bg-blue-600 text-white font-medium py-2.5 px-4 rounded-xl transition-colors duration-300 flex items-center justify-center group-hover:shadow-lg" onclick="showToast('${p.name} ditambahkan ke troli')">
+                                <i class="fas fa-cart-plus mr-2"></i> Tambah ke Troli
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStorefront() {
+            const container = document.getElementById('products-container');
+            const emptyState = document.getElementById('empty-state');
+            
+            container.innerHTML = '';
+            
+            if (products.length === 0) {
+                container.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            products.forEach(p => {
+                container.innerHTML += createProductCardHTML(p);
+            });
+        }
+
+        function renderPromoView() {
+            const container = document.getElementById('promo-products-container');
+            container.innerHTML = '';
+            
+            // Filter only promo items
+            const promoProducts = products.filter(p => p.isPromo);
+
+            if (promoProducts.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
+                        <i class="fas fa-box-open text-5xl text-gray-300 mb-4"></i>
+                        <h3 class="text-xl font-bold text-gray-700">Yah, belum ada promo hari ini.</h3>
+                        <p class="text-gray-500 mt-2">Cek kembali nanti untuk penawaran menarik dari kami!</p>
+                        <button onclick="switchView('storefront')" class="mt-6 px-6 py-2 bg-blue-50 text-blue-600 font-medium rounded-lg hover:bg-blue-100 transition">Lihat Semua Produk</button>
+                    </div>`;
+                return;
+            }
+
+            promoProducts.forEach(p => {
+                container.innerHTML += createProductCardHTML(p);
+            });
+        }
+
+        // --- Initialization ---
+        window.onload = () => {
+            // Initialize auth UI
+            updateAuthUI();
+            // Initialize main view
+            switchView('storefront');
+        };
+
+    </script>
+</body>
+</html>
